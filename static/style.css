@@ -1,0 +1,208 @@
+/* static/style.css */
+body {
+    background-color: #37474F;
+    color: White;
+}
+
+.custom-checkbox:checked {
+    background-color: #263238; /* Change this to the desired color */
+    border-color: #263238;
+}
+
+.subtitle {
+    font-size: 24px;
+    font-style: italic;
+    margin-top: -0.25rem;
+}
+
+.center-form {
+    max-width: 800px;
+    padding-top: 50px; /* Adjust height to leave space for header */
+}
+
+.custom-info-card {
+  position: relative;
+  overflow: visible; /* Allows the image to extend outside the card */
+  border: 2px solid white;
+  background-color: #37474F;
+}
+
+.image-container {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  transform: translate(-48%, 35%); /* Adjust the position as needed */
+  border-radius: 50%; /* Optional: for rounded images */
+  background-color: #37474F; /* Background color */
+  padding-right: 5px;
+  width: 150px; /* Match the image width */
+}
+
+.card-img {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit; /* Inherits the border-radius from the container */
+  filter: invert(100%);
+}
+
+.custom-card {
+    background-color: #CFD8DC;
+    color: #263238
+}
+
+.custom-card-title {
+    font-size: 28px;
+}
+
+.card-subtitle {
+    font-size: 28px;
+    text-align: right;
+}
+
+.card-subsubtitle {
+    font-size: 16px;
+    text-align: right;
+}
+
+.card-line {
+    font-size: 20px;
+}
+
+.card-subline {
+    font-size: 16px;
+}
+
+.card-subsubline {
+    font-size: 14px;
+}
+
+.card-text {
+    font-size: 16px;
+}
+
+.card-header {
+    background-color: #e9ecef;
+}
+
+.card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    margin-left: 0px;
+}
+
+.custom-arrow {
+    transform: rotate(-45deg);
+}
+
+.card-link:hover {
+    color: white;
+}
+
+.card-link:hover .custom-arrow{
+    color: white;
+    transform: none;
+}
+
+.card-link+.card-link {
+    margin-left: 0px;
+}
+
+.games-width {
+    width: 10%; /* Set width of games list item */
+    text-align: left; /* Center the text */
+}
+
+.winrate-width {
+    width: 10%; /* Set width of win rate list item */
+    text-align: left; /* Center the text */
+}
+
+/* Ensure the display name takes the remaining space */
+.display-name-width {
+    flex-grow: 1; /* Takes the remaining space */
+    text-align: left; /* Align text to the left */
+}
+
+.hr-tight {
+    margin-top: 0.25rem;    /* Reduced top margin */
+    margin-bottom: 0.5rem; /* Reduced bottom margin */
+    width: 100%;           /* Ensure it spans the full width of its container */
+    border-width: 1px;     /* Optional: adjust border thickness if desired */
+    color: black;
+}
+
+.line-row {
+    padding-left: 25px;
+    padding-right: 25px
+}
+
+.subline-row {
+    padding-left: 50px;
+    padding-right: 50px
+}
+
+.subsubline-row {
+    padding-left: 75px;
+    padding-right: 75px;
+}
+
+.user-text {
+    font-size: 40px;
+}
+
+.user-subtext {
+    font-size: 16px;
+}
+
+.rating-text {
+    font-size: 18px;
+    margin-top: -0.25rem;
+    color: #CFD8DC;
+    cursor: default;
+}
+
+@media (max-width: 767px) {
+    .user-text {
+        font-size: 30px;
+    }
+    .rating-text {
+        font-size: 13px;
+    }
+    .custom-card-title {
+        font-size: 21px;
+    }
+    .card-subtitle {
+        font-size: 21px;
+    }
+    .card-subsubtitle {
+        font-size: 12px;
+    }
+    .card-line {
+        font-size: 15px;
+    }
+    .card-subline {
+        font-size: 12px;
+    }
+    .card-subsubline {
+        font-size: 11px;
+    }
+    .card-text {
+        font-size: 12px;
+    }
+    .user-subtext {
+        font-size: 12px;
+    }
+    .line-row {
+        padding-left: 12px;
+        padding-right: 12px
+    }
+    .subline-row {
+        padding-left: 25px;
+        padding-right: 25px
+    }
+    .subsubline-row {
+        padding-left: 37px;
+        padding-right: 37px;
+    }
+}

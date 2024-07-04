@@ -1,0 +1,93 @@
+
+.custom-card {
+    margin-left: 50px;
+    margin-right: 50px;
+    background-color: #CFD8DC;
+    color: #263238
+}
+
+.custom-card-title {
+    margin-bottom: 10px;
+    font-size: 28px;
+}
+
+.card-subtitle {
+    margin-bottom: 10px;
+    font-size: 28px;
+    text-align: right;
+}
+
+.card-subsubtitle {
+    margin-bottom: 10px;
+    font-size: 16px;
+    text-align: right;
+}
+
+.card-line {
+    font-size: 20px;
+}
+
+.card-subline {
+    font-size: 16px;
+}
+
+.card-text {
+    margin-bottom: 10px;
+    font-size: 16px;
+}
+
+.card-header {
+    background-color: #e9ecef;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    margin-left: 0px;
+}
+
+.card-link:hover {
+    text-decoration: none;
+    color: inherit;
+    margin-left: 0px;
+}
+
+.card-link+.card-link {
+    margin-left: 0px;
+}
+
+.games-width {
+    width: 10%; /* Set width of games list item */
+    text-align: left; /* Center the text */
+}
+
+.winrate-width {
+    width: 10%; /* Set width of win rate list item */
+    text-align: left; /* Center the text */
+}
+
+/* Ensure the display name takes the remaining space */
+.display-name-width {
+    flex-grow: 1; /* Takes the remaining space */
+    text-align: left; /* Align text to the left */
+}
+
+.hr-tight {
+    margin-top: 0.5rem;    /* Reduced top margin */
+    margin-bottom: 0.5rem; /* Reduced bottom margin */
+    width: 100%;           /* Ensure it spans the full width of its container */
+    border-width: 1px;     /* Optional: adjust border thickness if desired */
+    color: black;
+}
+
+.line-row {
+    padding-left: 25px;
+    padding-right: 25px
+}
+
+.subline-row {
+    padding-left: 50px;
+    padding-right: 50px
+}

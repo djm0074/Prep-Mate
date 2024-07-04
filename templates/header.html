@@ -1,0 +1,20 @@
+<style>
+    .header-subtitle {
+        font-size: 24px;
+        font-style: italic;
+        margin-top: -0.25rem;
+    }
+    @media (max-width: 700px) {
+        .header-subtitle {
+            font-size: 16px;
+            margin-top: 0.5rem;
+        }
+    }
+</style>
+<div class="d-flex px-3 pb-3 shadow-sm align-items-start" style="background-color: #263238; color: white;">
+    <img src="{{ url_for('static', filename='logo.png') }}" class="mt-3" style="height: 96px; filter: invert(100%);">
+    <div class="d-flex flex-column px-4 pt-1">
+        <span style="font-size: 48px;">Prep Mate</span>
+        <span class="header-subtitle text-nowrap">Your Best Move for Outsmarting the Competition</span>
+    </div>
+</div>
