@@ -141,34 +141,33 @@
 
 <script>
     $(document).ready(function() {
+        // Handle form submission for sorting openings
         $('form[action="/sort_openings"]').on('submit', function(event) {
-            event.preventDefault();
-            const formData = $(this).serializeArray();
+            event.preventDefault();  // Prevent default form submission
+            const formData = $(this).serializeArray();  // Serialize form data
 
+            // Perform an AJAX POST request to sort openings
             $.post('/sort_openings', $.param(formData), function(response) {
-                // Update the stats container with the sorted stats
-                $('#stats-container').html(response);
+                $('#stats-container').html(response);  // Update stats container with the response
             }).fail(function(response) {
-                alert('Error: ' + response.responseText);
+                alert('Error: ' + response.responseText);  // Alert error message on failure
             });
         });
-    });
 
-    $(document).ready(function() {
+        // Handle form submission for swapping colors
         $('form[action="/swap_colors"]').on('submit', function(event) {
-            event.preventDefault();
-            const formData = $(this).serializeArray();
+            event.preventDefault();  // Prevent default form submission
+            const formData = $(this).serializeArray();  // Serialize form data
 
+            // Perform an AJAX POST request to swap colors
             $.post('/swap_colors', $.param(formData), function(response) {
-                // Update the stats container with the sorted stats
-                $('#stats-container').html(response);
+                $('#stats-container').html(response);  // Update stats container with the response
             }).fail(function(response) {
-                alert('Error: ' + response.responseText);
+                alert('Error: ' + response.responseText);  // Alert error message on failure
             });
         });
-    });
 
-    $(document).ready(function(){
-            $('[data-bs-toggle="tooltip"]').tooltip();
+        // Initialize Bootstrap tooltips
+        $('[data-bs-toggle="tooltip"]').tooltip();
     });
 </script>

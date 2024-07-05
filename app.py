@@ -30,6 +30,7 @@ Session(app)
 # Initialize FuturesSession
 futures_session = FuturesSession(executor=ThreadPoolExecutor(max_workers=10))
 
+
 def generate_session_id(data):
     session_id = str(uuid.uuid4())
     session[session_id] = data
@@ -1150,46 +1151,36 @@ def process_games_api():
 
 @app.route('/sort_openings', methods=['POST'])
 def sort_openings_api():
-    # Recursive function to sort sub_lines
     def recursive_sort(lines):
         for line in lines:
             if 'sub_lines' in line and line['sub_lines']:
-                # Sort sub_lines by the metric
                 line['sub_lines'].sort(key=lambda x: x[metric], reverse=direction)
-                # Recursively sort the nested sub_lines
                 recursive_sort(line['sub_lines'])
 
-    metric = request.form['metric']
-    direction = request.form['direction'] == 'True'  # Convert to boolean
-    if 'stats' in session:
-        stats = session['stats']
-        # Sort the stats list by the specified metric
-        stats.sort(key=lambda x: x[metric], reverse=direction)
-        recursive_sort(stats)
-        session['stats'] = stats  # Update the session with sorted stats
-        if metric == 'num_games':
-            gamesort = 'checked'
-            winsort = ''
-        else:
-            winsort = 'checked'
-            gamesort = ''
-
-        if direction:
-            desc = 'checked'
-            asc = ''
-        else:
-            asc = 'checked'
-            desc = ''
-
-        return render_template('process_games.html', stats=session['stats'], playerinfo=session['player-info'],
-                               gamesort=gamesort, winsort=winsort, asc=asc,
-                               desc=desc)
-    else:
+    if 'stats' not in session:
         return "No stats to sort", 400
+
+    metric = request.form['metric']
+    direction = request.form['direction'] == 'True'
+    stats = session['stats']
+    stats.sort(key=lambda x: x[metric], reverse=direction)
+    recursive_sort(stats)
+    session['stats'] = stats
+
+    gamesort = 'checked' if metric == 'num_games' else ''
+    winsort = 'checked' if metric == 'win_rate' else ''
+    asc = 'checked' if not direction else ''
+    desc = 'checked' if direction else ''
+
+    return render_template('process_games.html', stats=session['stats'], playerinfo=session['player-info'],
+                           gamesort=gamesort, winsort=winsort, asc=asc, desc=desc)
 
 
 @app.route('/swap_colors', methods=['POST'])
 def swap_colors_api():
+    if 'stats' not in session or 'alt-stats' not in session:
+        return "No stats to swap", 400
+
     temp_stats = session.get('stats')
     session['stats'] = session.get('alt-stats')
     session['alt-stats'] = temp_stats
@@ -1199,8 +1190,7 @@ def swap_colors_api():
     session['player-info']['not_color'] = temp_color
 
     return render_template('process_games.html', stats=session['stats'], playerinfo=session['player-info'],
-                           gamesort='checked', winsort='', asc='',
-                           desc='checked')
+                           gamesort='checked', winsort='', asc='', desc='checked')
 
 
 @app.route('/opening_details')
