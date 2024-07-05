@@ -2,7 +2,8 @@ from flask import Flask, request, render_template, session
 from flask_session import Session
 from requests_futures.sessions import FuturesSession
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dotenv import load_dotenv  # Add this import
+from dotenv import load_dotenv
+from redis import Redis
 import os
 import uuid
 import requests
@@ -10,10 +11,10 @@ import copy
 import pprint
 from datetime import timedelta, datetime
 
-# Load environment variables from .env file
-load_dotenv()  # Add this line
-
 app = Flask(__name__)
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Ensure a secure secret key is set for production
 secret_key = os.environ.get('FLASK_SECRET_KEY')
@@ -21,10 +22,12 @@ if not secret_key and app.config['ENV'] == 'production':
     raise ValueError("No FLASK_SECRET_KEY set for Flask application")
 app.secret_key = secret_key or 'default_secret_key'  # Use default for development
 
-# Configure server-side session
-app.config['SESSION_TYPE'] = 'filesystem'
+# Configure server-side session with Redis
+app.config['SESSION_TYPE'] = 'redis'
+app.config['SESSION_REDIS'] = Redis.from_url(os.environ.get('REDIS_URL'))
 app.config['SESSION_PERMANENT'] = False
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=120)
+
 Session(app)
 
 # Initialize FuturesSession
