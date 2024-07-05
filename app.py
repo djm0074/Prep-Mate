@@ -2,7 +2,6 @@ from flask import Flask, request, render_template, session
 from flask_session import Session
 from requests_futures.sessions import FuturesSession
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from flask_socketio import SocketIO, emit
 from dotenv import load_dotenv  # Add this import
 import os
 import uuid
@@ -30,10 +29,6 @@ Session(app)
 
 # Initialize FuturesSession
 futures_session = FuturesSession(executor=ThreadPoolExecutor(max_workers=10))
-
-# Initialize SocketIO
-socketio = SocketIO(app)
-
 
 def generate_session_id(data):
     session_id = str(uuid.uuid4())
@@ -988,8 +983,6 @@ def process_games(d, username, num_months, time_classes):
     for month in months['archives'][-num_months:]:
         futures.append(futures_session.get(month, headers=headers))
 
-    total_games_processed = 0
-
     for future in as_completed(futures):
         response = future.result()
         games = response.json()
@@ -997,8 +990,6 @@ def process_games(d, username, num_months, time_classes):
             game_futures = [executor.submit(update_stats, d, game, username, time_classes) for game in games['games']]
             for game_future in as_completed(game_futures):
                 game_future.result()
-                total_games_processed += 1
-                socketio.emit('update_progress', {'games_processed': total_games_processed})
 
 
 def update_stats(d, game, username, time_classes):
@@ -1297,4 +1288,4 @@ def prettify_stats(stats_dict):
 
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True, allow_unsafe_werkzeug=True)
+    app.run(debug=False)

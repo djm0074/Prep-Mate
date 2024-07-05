@@ -129,7 +129,6 @@
                         <span class="visually-hidden">Loading...</span>
                     </div>
                     <p id="loading-text">Processing games, please wait...</p>
-                    <p id="games-processed">Games processed: 0</p>
                 </div>
             </div>
         </form>
@@ -157,10 +156,6 @@
 
     $(document).ready(function() {
         const socket = io();
-
-        socket.on('update_progress', function(data) {
-            $('#games-processed').text(`Games processed: ${data.games_processed}`);
-        });
 
         $('#analyzer-form').on('submit', function(event) {
             event.preventDefault();
