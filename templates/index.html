@@ -19,33 +19,42 @@
 <div class="container mt-5 d-flex justify-content-center align-items-center" style="padding-left: 75px;">
     <div class="card custom-info-card w-90">
         <div class="card-body m-4">
-            <h3 class="card-title" style="margin-left: 40px; color: #FFCA28;">Use the Opening Analyzer to <span style="font-style: italic;">Counter</span> their strategy or <span style="font-style: italic;">Enhance</span> your own</h3>
+            <h3 class="card-title" style="margin-left: 40px; color: #FFCA28;">Use the Opening Analyzer to <span
+                    style="font-style: italic;">Counter</span> their strategy or <span style="font-style: italic;">Enhance</span>
+                your own</h3>
         </div>
         <div class="image-container">
-            <img src="static/chessboard-symbol.png" class="card-img">
+            <img src="static/chessboard-symbol.png" class="card-img" alt="chessboard">
         </div>
     </div>
 </div>
 <div class="container d-flex justify-content-center align-items-center">
     <div class="center-form w-100">
-        <form id="analyzer-form" action="/process_games" method="post" class="mb-4 w-100 shadow-lg" style="background-color: #546E7A;">
-            <legend class="display-5 pb-3 mb-3" style="text-align: center; background-color: #ECEFF1; color: black;">Opening Analyzer</legend>
+        <form id="analyzer-form" action="/process_games" method="post" class="mb-4 w-100 shadow-lg"
+              style="background-color: #546E7A;">
+            <legend class="display-5 pb-3 mb-3" style="text-align: center; background-color: #ECEFF1; color: black;">
+                Opening Analyzer
+            </legend>
             <div class="row mb-3 px-3">
                 <div class="col-md-5 text-start text-md-end">
                     <label for="username" class="form-label">Chess.com Username:</label>
                 </div>
                 <div class="col-md-7">
-                    <input type="text" id="username" name="username" class="form-control" required style="max-width: 250px;">
+                    <input type="text" id="username" name="username" class="form-control" required
+                           style="max-width: 250px;">
                 </div>
             </div>
 
             <div class="row mb-3 px-3">
                 <div class="col-md-5 text-start text-md-end">
-                    <label class="form-label">Color:</label>
+                    <fieldset>
+                        <legend class="form-label" style="font-size: 16px;">Color:</legend>
+                    </fieldset>
                 </div>
                 <div class="col-md-7">
                     <div class="btn-group" role="group" aria-label="Basic radio toggle button group">
-                        <input type="radio" class="btn-check" name="color" id="white" value="white" autocomplete="off" checked>
+                        <input type="radio" class="btn-check" name="color" id="white" value="white" autocomplete="off"
+                               checked>
                         <label class="btn btn-outline-light" for="white">White</label>
                         <input type="radio" class="btn-check" name="color" id="black" value="black" autocomplete="off">
                         <label class="btn btn-outline-dark" for="black">Black</label>
@@ -60,21 +69,25 @@
                 <div class="col-md-7">
                     <div class="row px-3">
                         <div class="form-check form-check-inline">
-                            <input class="form-check-input custom-checkbox" type="checkbox" name="allGames" id="allGames" checked onchange="toggleTimeFrame()">
+                            <input class="form-check-input custom-checkbox" type="checkbox" name="allGames"
+                                   id="allGames" checked onchange="toggleTimeFrame()">
                             <label class="form-check-label" for="allGames">Analyze all Games</label>
                         </div>
                     </div>
                     <div class="row align-items-center">
                         <div class="col-auto">
-                            <input type="number" id="num-months" name="num-months" class="form-control" min="1" max="12" style="max-width: 75px;" required>
+                            <input type="number" id="num-months" name="num-months" class="form-control" min="1" max="12"
+                                   style="max-width: 75px;" required>
                         </div>
                         <div class="col-auto">
                             <div class="form-check form-check-inline">
-                                <input class="form-check-input custom-checkbox" type="radio" name="monthsOrYears" id="inlineRadio1" value="months" required>
+                                <input class="form-check-input custom-checkbox" type="radio" name="monthsOrYears"
+                                       id="inlineRadio1" value="months" required>
                                 <label class="form-check-label" for="inlineRadio1">months</label>
                             </div>
                             <div class="form-check form-check-inline">
-                                <input class="form-check-input custom-checkbox" type="radio" name="monthsOrYears" id="inlineRadio2" value="years" required>
+                                <input class="form-check-input custom-checkbox" type="radio" name="monthsOrYears"
+                                       id="inlineRadio2" value="years" required>
                                 <label class="form-check-label" for="inlineRadio2">years</label>
                             </div>
                         </div>
@@ -83,49 +96,45 @@
             </div>
 
             <div class="row mb-3 px-3">
-                <div class="col-md-5 text-start text-md-end">
-                    <label class="form-label">Select Time Controls:</label>
-                </div>
-                <div class="col-md-7">
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input custom-checkbox" type="checkbox" name="time-classes" id="bullet" value="bullet" checked>
-                        <label class="form-check-label" for="bullet">Bullet</label>
-                    </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input custom-checkbox" type="checkbox" name="time-classes" id="blitz" value="blitz" checked>
-                        <label class="form-check-label" for="blitz">Blitz</label>
-                    </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input custom-checkbox" type="checkbox" name="time-classes" id="rapid" value="rapid" checked>
-                        <label class="form-check-label" for="rapid">Rapid</label>
-                    </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input custom-checkbox" type="checkbox" name="time-classes" id="daily" value="daily">
-                        <label class="form-check-label" for="daily">Daily</label>
-                    </div>
-                </div>
-            </div>
+    <div class="col-md-5 text-start text-md-end">
+        <label class="form-label" for="time-controls">Select Time Controls:</label>
+    </div>
+    <div class="col-md-7" id="time-controls">
+        <div class="form-check form-check-inline">
+            <input class="form-check-input custom-checkbox" type="checkbox" name="time-classes" id="bullet" value="bullet" checked>
+            <label class="form-check-label" for="bullet">Bullet</label>
+        </div>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input custom-checkbox" type="checkbox" name="time-classes" id="blitz" value="blitz" checked>
+            <label class="form-check-label" for="blitz">Blitz</label>
+        </div>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input custom-checkbox" type="checkbox" name="time-classes" id="rapid" value="rapid" checked>
+            <label class="form-check-label" for="rapid">Rapid</label>
+        </div>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input custom-checkbox" type="checkbox" name="time-classes" id="daily" value="daily">
+            <label class="form-check-label" for="daily">Daily</label>
+        </div>
+    </div>
+</div>
 
             <div class="row pb-3">
                 <div class="col-md-12 text-center">
                     <button type="submit" class="btn btn-dark btn-lg">Get Stats</button>
                 </div>
                 <!-- Loading Indicator -->
-<div id="loading-indicator" class="text-center" style="display:none;">
-    <div id="spinner" class="spinner-border text-primary mt-2" role="status">
-        <span class="visually-hidden">Loading...</span>
-    </div>
-    <p id="loading-text">Processing games, please wait...</p>
-    <p id="games-processed">Games processed: 0</p>
-</div>
+                <div id="loading-indicator" class="text-center" style="display:none;">
+                    <div id="spinner" class="spinner-border text-primary mt-2" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p id="loading-text">Processing games, please wait...</p>
+                    <p id="games-processed">Games processed: 0</p>
+                </div>
             </div>
         </form>
     </div>
 </div>
-
-<!--<div id="username-header" class="text-center" style="display:none;">
-    <h2 id="username-display"></h2>
-</div>-->
 
 <!-- Placeholder for stats -->
 <div id="stats-container"></div>

@@ -1,0 +1,6 @@
+projectKey=Prep-Mate
+serverUrl=http://127.0.0.1:9000
+serverVersion=10.6.0.92116
+dashboardUrl=http://127.0.0.1:9000/dashboard?id=Prep-Mate
+ceTaskId=e0acd04f-e072-4337-af89-0cdea2857cdc
+ceTaskUrl=http://127.0.0.1:9000/api/ce/task?id=e0acd04f-e072-4337-af89-0cdea2857cdc

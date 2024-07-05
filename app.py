@@ -1,19 +1,26 @@
-from flask import Flask, request, jsonify, render_template, session, redirect, url_for
+from flask import Flask, request, render_template, session
 from flask_session import Session
 from requests_futures.sessions import FuturesSession
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask_socketio import SocketIO, emit
+from dotenv import load_dotenv  # Add this import
+import os
 import uuid
-import sys
-import re
 import requests
 import copy
 import pprint
-import json
 from datetime import timedelta, datetime
 
+# Load environment variables from .env file
+load_dotenv()  # Add this line
+
 app = Flask(__name__)
-app.secret_key = 'supersecretkey'  # Change this to a secure key in production
+
+# Ensure a secure secret key is set for production
+secret_key = os.environ.get('FLASK_SECRET_KEY')
+if not secret_key and app.config['ENV'] == 'production':
+    raise ValueError("No FLASK_SECRET_KEY set for Flask application")
+app.secret_key = secret_key or 'default_secret_key'  # Use default for development
 
 # Configure server-side session
 app.config['SESSION_TYPE'] = 'filesystem'
@@ -39,19 +46,17 @@ app.jinja_env.globals.update(generate_session_id=generate_session_id)
 
 # Grouping openings by ECO and name
 eco_details = {
-    'uncommon': {
+    'A00': {
         'displayName': 'Uncommon Openings',
         'lines': {
-            'Bird': ('Bird\'s Opening', {
-                'Froms': ('From\'s Gambit', None),
-                'Dutch': ('Dutch Variation', None),
-                'Other': ('Other', None)
-            }),
             'Grob': ('Grob Opening', {
                 'Grob-Gambit': ('Grob Gambit', None),
                 'Other': ('Other', None)
             }),
-            'Kings-F': ('King\'s Fianchetto Opening', None),
+            'Kings-F': ('King\'s Fianchetto Opening', {
+                'Symmetrical': ('Symmetrical Variation', None),
+                'Other': ('Other', None)
+            }),
             'Polish': ('Polish Opening', {
                 'Kuchark': ('Kucharkowski-Meybohm Gambit', None),
                 'Other': ('Other', None)
@@ -67,6 +72,14 @@ eco_details = {
             'Indian': ('Indian Variation', None),
             'Modern': ('Modern Variation', None),
             'Symmetrical': ('Symmetrical Variation', None),
+            'Other': ('Other', None)
+        }
+    },
+    'A02-A03': {
+        'displayName': 'Bird\'s Opening',
+        'lines': {
+            'Froms': ('From\'s Gambit', None),
+            'Dutch': ('Dutch Variation', None),
             'Other': ('Other', None)
         }
     },
@@ -149,6 +162,16 @@ eco_details = {
                 'Other': ('Other', None)
             }),
             'ti-Nimzo': ('Anti-Nimzo-Indian Variation', None),
+            'Blumen': ('Blumenfeld Countergambit', None),
+            'Torre': ('Torre Attack', None),
+            'London': ('London System', {
+                'Accel': ('Accelerated London System', {
+                    'Steinitz': ('Steinitz Countergambit', None),
+                    'Other': ('Other', None)
+                }),
+                'Indian': ('Indian Game Variation', None),
+                'Other': ('Other', None)
+            }),
             'Indian': ('Indian Game', {
                 'East-I': ('East Indian Variation', None),
                 'Old-I': ('Old Indian Defense', None),
@@ -160,24 +183,22 @@ eco_details = {
                     'Wade-S': ('Wade-Smyslov Variation', None),
                     'Other': ('Other', None)
                 }),
+                'Polish': ('Polish Variation', None),
+                'Spielmann': ('Spielmann Indian Variation', None),
+                'Yusupov': ('Yusupov-Rubinstein System', None),
+                'Accel': ('Accelerated Variation', None),
+                'Knights': ('Knights Variation', None),
                 'Other': ('Other', None)
             }),
-            'Blumen': ('Blumenfeld Countergambit', None),
-            'Torre': ('Torre Attack', None),
-            'London': ('London System', {
-                'Accel': ('Accelerated London System', {
-                    'Steinitz': ('Steinitz Countergambit', None),
-                    'Other': ('Other', None)
-                }),
-                'Other': ('Other', None)
-            }),
+            'Rossolimo': ('Rossolimo Variation', None),
+            'Horwitz': ('Horwitz Defense', None),
+            'Zuker': ('Zukertort Variation', None),
             'Chigorin': ('Chigorin Variation', None),
             'Levitsky': ('Levitsky Attack', None),
             'Stonewall': ('Stonewall Attack', None),
             'Blackmar': ('Blackmar Gambit', None),
             'Colle': ('Colle System', None),
             'Symmetrical': ('Symmetrical Variation', None),
-            'Zuker': ('Zukertort Variation', None),
             'Krause': ('Krause Variation', None),
             'Pseudo': ('Pseudo Catalan Variation', None),
             'Other': ('Other', None)
@@ -210,12 +231,6 @@ eco_details = {
                 'Scandi': ('Scandinavian Variation', None),
                 'Other': ('Other', None)
             }),
-            'Philidor': ('Philidor Defense', {
-                'Exchange': ('Exchange Variation', None),
-                'Hanham': ('Hanham Variation', None),
-                'Nimzo': ('Nimzowitsch Variation', None),
-                'Other': ('Other', None)
-            }),
             'Ponzi': ('Ponziani Opening', {
                 'Jaenisch': ('Jaenisch Counterattack', None),
                 'Steinitz': ('Steinitz Variation', None),
@@ -224,27 +239,11 @@ eco_details = {
                 'Kings-P': ('Weird Anti-Ponziani Lines', None),
                 'Other': ('Other', None)
             }),
-            'Three-K': ('Three Knights Opening', {
-                'Steinitz': ('Steinitz Defense', None),
-                'Winawer': ('Winawer Defense', None),
-                'Other': ('Other', None)
-            }),
-            'Four-K': ('Four Knights Game', {
-                'Gunsberg': ('Gunsberg Variation', None),
-                'Italian': ('Italian Variation', None),
-                'Scotch': ('Scotch Variation', None),
-                'Spanish': ('Spanish Variation', {
-                    'Classic': ('Classical Variation', None),
-                    'Rubin': ('Rubinstein Countergambit', None),
-                    'Double': ('Double Spanish Variation', None),
-                    'Other': ('Other', None)
-                }),
-                'Other': ('Other', None)
-            }),
             'Owen': ('Owen\'s Defense', None),
             'Wayward': ('Wayward Queen Attack', None),
             'Center': ('Center Game', None),
             'Danish': ('Danish Gambit', None),
+            'Kings-K': ('King\'s Knight Variation', None),
             'Other': ('Other', None)
         }
     },
@@ -502,6 +501,15 @@ eco_details = {
             'Other': ('Other', None)
         }
     },
+    'C40-C41': {
+        'displayName': 'Philidor Defense',
+        'lines': {
+            'Exchange': ('Exchange Variation', None),
+            'Hanham': ('Hanham Variation', None),
+            'Nimzo': ('Nimzowitsch Variation', None),
+            'Other': ('Other', None)
+        }
+    },
     'C42-C43': {
         'displayName': 'Petrov\'s Defense',
         'lines': {
@@ -536,6 +544,29 @@ eco_details = {
                 'Other': ('Other', None)
             }),
             'tch-Gambit': ('Scotch Gambit', None),
+            'Other': ('Other', None)
+        }
+    },
+    'C46': {
+        'displayName': 'Three Knights Opening',
+        'lines': {
+            'Steinitz': ('Steinitz Defense', None),
+            'Winawer': ('Winawer Defense', None),
+            'Other': ('Other', None)
+        }
+    },
+    'C47-C49': {
+        'displayName': 'Four Knights Game',
+        'lines': {
+            'Gunsberg': ('Gunsberg Variation', None),
+            'Italian': ('Italian Variation', None),
+            'Scotch': ('Scotch Variation', None),
+            'Spanish': ('Spanish Variation', {
+                'Classic': ('Classical Variation', None),
+                'Rubin': ('Rubinstein Countergambit', None),
+                'Double': ('Double Spanish Variation', None),
+                'Other': ('Other', None)
+            }),
             'Other': ('Other', None)
         }
     },
@@ -805,17 +836,14 @@ eco_details = {
 
 
 def create_aliases(d):
-    # Uncommon Openings
-    # Unusual
-    d['A00'] = d['uncommon']
     # Bird's Opening
     for num in range(2, 4):
-        d[f'A0{num}'] = d['uncommon']
+        d[f'A0{num}'] = d['A02-A03']
 
     # Reti Opening
     for num in range(4, 7):
         d[f'A0{num}'] = d['A04-A06, A09']
-    d[f'A09'] = d['A04-A06, A09']
+    d['A09'] = d['A04-A06, A09']
 
     # King's Indian Attack
     for num in range(7, 9):
@@ -868,16 +896,6 @@ def create_aliases(d):
     # Uncommon e4-e5 Openings
     for num in range(20, 23):
         d[f'C{num}'] = d['e4']
-    # Philidor Defense
-    for num in range(40, 42):
-        d[f'C{num}'] = d['e4']
-    # Ponziani Opening
-    d['C44'] = d['e4']
-    # Three Knights Opening
-    d['C46'] = d['e4']
-    # Four Knights Opening
-    for num in range(47, 50):
-        d[f'C{num}'] = d['e4']
 
     # Vienna Game
     for num in range(23, 30):
@@ -887,9 +905,17 @@ def create_aliases(d):
     for num in range(30, 40):
         d[f'C{num}'] = d['C30-C39']
 
+    # Philidor Defense
+    for num in range(40, 42):
+        d[f'C{num}'] = d['C40-C41']
+
     # Petrov's Defense
     for num in range(42, 44):
         d[f'C{num}'] = d['C42-C43']
+
+    # Four Knights Opening
+    for num in range(47, 50):
+        d[f'C{num}'] = d['C47-C49']
 
     # Italian Game
     for num in range(50, 60):
@@ -1045,7 +1071,7 @@ def update_stats(d, game, username, time_classes):
                     game_data['black']['win_inc'] = win_i
                     game_data['white']['win_inc'] = 1 - win_i
                     update_line(d['black'][eco], game_id, game_data, opening_specific, win_i)
-    except KeyError as e:
+    except KeyError:
         pass
 
 
@@ -1066,6 +1092,9 @@ def process_games_api():
     profile_api_url = f"https://api.chess.com/pub/player/{username}"
     profile_info = requests.get(profile_api_url, headers=headers).json()
 
+    if 'code' in profile_info and profile_info['code'] == 0:
+        return f"User \"{username}\" not found.", 404
+
     stats_api_url = f"https://api.chess.com/pub/player/{username}/stats"
     stats_info = requests.get(stats_api_url, headers=headers).json()
     rating_info = {}
@@ -1077,11 +1106,12 @@ def process_games_api():
             num_months = int(time_frame)
         else:
             num_months = int(time_frame) * 12
-        time_frame_str = f"*Last {num_months} {months_or_years}"
         if int(time_frame) == 1:
-            time_frame_str = f"*Last {months_or_years[:-1]}"
+            time_frame_str = f"last {months_or_years[:-1]}"
+        else:
+            time_frame_str = f"last {time_frame} {months_or_years}"
     else:
-        time_frame_str = '*all games'
+        time_frame_str = 'all games'
 
     if color == 'white':
         not_color = 'black'
@@ -1092,9 +1122,13 @@ def process_games_api():
         time_classes = ['bullet', 'blitz', 'rapid', 'daily']
 
     for time_class in time_classes:
+        chess_time_class = stats_info.get(f"chess_{time_class}", {})
+        last_rating = chess_time_class.get('last', {}).get('rating', 'N/A')
+        best_rating = chess_time_class.get('best', {}).get('rating', 'N/A')
+
         rating_info[time_class] = {
-            'current': stats_info[f"chess_{time_class}"]['last']['rating'],
-            'peak': stats_info[f"chess_{time_class}"]['best']['rating']
+            'current': last_rating if last_rating != 'N/A' else 'N/A',
+            'peak': best_rating if best_rating != 'N/A' else 'N/A'
         }
 
     player_info = {'display_name': profile_info['url'][29:], 'color': color, 'not_color': not_color,
@@ -1102,7 +1136,8 @@ def process_games_api():
     session['player-info'] = player_info
 
     # Initialize the opening stats dictionary
-    opening_stats_w = {eco: create_eco_dict(details['displayName'], details['lines']) for eco, details in eco_details.items()}
+    opening_stats_w = {eco: create_eco_dict(details['displayName'], details['lines']) for eco, details in
+                       eco_details.items()}
     create_aliases(opening_stats_w)
     opening_stats_b = copy.deepcopy(opening_stats_w)
 
@@ -1116,7 +1151,8 @@ def process_games_api():
     session['alt-stats'] = prettify_stats(opening_stats[not_color])
 
     if session['stats']:
-        return render_template('process_games.html', stats=session['stats'], playerinfo=session['player-info'], gamesort='checked', winsort='', asc='', desc='checked')
+        return render_template('process_games.html', stats=session['stats'], playerinfo=session['player-info'],
+                               gamesort='checked', winsort='', asc='', desc='checked')
     else:
         return "No stats available", 400
 
@@ -1154,7 +1190,8 @@ def sort_openings_api():
             asc = 'checked'
             desc = ''
 
-        return render_template('process_games.html', stats=session['stats'], playerinfo=session['player-info'], gamesort=gamesort, winsort=winsort, asc=asc,
+        return render_template('process_games.html', stats=session['stats'], playerinfo=session['player-info'],
+                               gamesort=gamesort, winsort=winsort, asc=asc,
                                desc=desc)
     else:
         return "No stats to sort", 400
@@ -1170,8 +1207,9 @@ def swap_colors_api():
     session['player-info']['color'] = session['player-info']['not_color']
     session['player-info']['not_color'] = temp_color
 
-    return render_template('process_games.html', stats=session['stats'], playerinfo=session['player-info'], gamesort='checked', winsort='', asc='',
-                               desc='checked')
+    return render_template('process_games.html', stats=session['stats'], playerinfo=session['player-info'],
+                           gamesort='checked', winsort='', asc='',
+                           desc='checked')
 
 
 @app.route('/opening_details')
@@ -1185,11 +1223,13 @@ def opening_details():
     parent = request.args.get('parent', '')
 
     for line in variation['variations'].values():
-        line['games'] = dict(sorted(line['games'].items(), key=lambda item: datetime.strptime(item[1]['date'], '%Y.%m.%d'), reverse=True))
+        line['games'] = dict(
+            sorted(line['games'].items(), key=lambda item: datetime.strptime(item[1]['date'], '%Y.%m.%d'),
+                   reverse=True))
 
     pprint.pp(variation)
 
-    return render_template('opening_details.html', variation=variation, parent=parent)
+    return render_template('opening_details.html', variation=variation, parent=parent, playerinfo=session['player-info'])
 
 
 def prettify_stats(stats_dict):
@@ -1226,11 +1266,23 @@ def prettify_stats(stats_dict):
 
         return result
 
-    # Moving the London System to its own entry in the dictionary
-    stats_dict['london_system'] = stats_dict['d4']['lines']['London']
-    del stats_dict['d4']['lines']['London']
-    stats_dict['d4']['numGames'] -= stats_dict['london_system']['numGames']
-    stats_dict['d4']['numWins'] -= stats_dict['london_system']['numWins']
+    def move_opening(new_eco_name, old_eco, old_name):
+        stats_dict[new_eco_name] = stats_dict[old_eco]['lines'][old_name]
+        del stats_dict[old_eco]['lines'][old_name]
+        stats_dict[old_eco]['numGames'] -= stats_dict[new_eco_name]['numGames']
+        stats_dict[old_eco]['numWins'] -= stats_dict[new_eco_name]['numWins']
+
+    move_opening('london', 'd4', 'London')
+    move_opening('indian', 'd4', 'Indian')
+    move_opening('benoni', 'd4', 'Benoni')
+    move_opening('trompowsky', 'd4', 'Tromp')
+
+    move_opening('nimzo-def', 'e4', 'Nimzo')
+    move_opening('ponziani', 'e4', 'Ponzi')
+
+    move_opening('grob', 'A00', 'Grob')
+    move_opening('kings-fianchetto', 'A00', 'Kings-F')
+    move_opening('polish', 'A00', 'Polish')
 
     results = []
     seen = set()

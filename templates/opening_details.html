@@ -15,14 +15,14 @@
         <div class="card-body m-4">
             <h3 class="card-title" style="color: #FFCA28;">Showing games for:</h3>
             <div style="margin-left: 20px;">
-                <h6>- Hikaru</h6>
-                <h6>- White</h6>
-                <h6>- Bullet, Blitz, Rapid</h6>
-                <h6>- Last 6 months</h6>
+                <h6>- {{ playerinfo.display_name }}</h6>
+                <h6>- {{ playerinfo.color }}</h6>
+                <h6>- {% for key, value in playerinfo.ratings.items() %}{{ key }}{% if not loop.last %}, {% endif %}{% endfor %}</h6>
+                <h6>- {{ playerinfo.time_frame }}</h6>
             </div>
         </div>
         <div class="image-container">
-            <img src="static/chessboard-symbol.png" class="card-img">
+            <img src="static/chessboard-symbol.png" class="card-img" alt="chessboard">
         </div>
     </div>
     </div>
@@ -94,7 +94,5 @@
                     </div>
                 {% endfor %}
             </div>
-
-
 </body>
 </html>

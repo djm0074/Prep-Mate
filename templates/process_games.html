@@ -1,7 +1,7 @@
 {# templates/process_games.html #}
 {% if stats and playerinfo %}
 <div class="container d-flex justify-content-center align-items-center">
-    <div class="row" style="max-width: 1500px;">
+    <div class="row pb-5" style="max-width: 1500px;">
         <div class="d-flex flex-wrap px-3 pb-3 shadow-lg" style="background-color: #263238;">
             <div class="col-lg-8 d-flex flex-column px-1 pt-1">
                 <div class="user-text text-nowrap">{{ playerinfo.display_name }} as <span class="text-capitalize">{{ playerinfo.color }} </span>
@@ -22,11 +22,10 @@
                 </span>
             </div>
             <div class="col-12 col-lg-4 d-flex flex-lg-column align-items-lg-end justify-content-lg-end">
-                <div class="h-100 pt-2 user-subtext">{{ playerinfo.time_frame }}</div>
+                <div class="h-100 pt-2 user-subtext">*{{ playerinfo.time_frame }}</div>
                 <div class="col-9 d-flex flex-fill justify-content-end">
                     <form action="/sort_openings" method="post">
-                        <div class="btn-toolbar d-flex justify-content-end" role="toolbar"
-                             aria-label="Toolbar with button groups">
+                        <div class="btn-toolbar d-flex justify-content-end" role="group" aria-label="Group with button elements">
                             <div class="btn-group btn-group-sm ms-2 mt-2" role="group" aria-label="Metric group">
                                 <input type="radio" class="btn-check" name="metric" id="metric1" value="num_games"
                                        autocomplete="off" {{ gamesort }}>
