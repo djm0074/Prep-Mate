@@ -13,6 +13,7 @@ import copy
 from datetime import datetime, timedelta, timezone
 import threading
 import time
+import tempfile
 
 app = Flask(__name__)
 
@@ -29,7 +30,18 @@ app.secret_key = secret_key or 'default_secret_key'  # Use default for developme
 google_credentials_json = os.environ.get('GOOGLE_CREDENTIALS_JSON')
 if not google_credentials_json:
     raise ValueError("No GOOGLE_CREDENTIALS_JSON set for Flask application")
-credentials = credentials.Certificate(json.loads(google_credentials_json))
+
+# Write the credentials JSON to a temporary file
+with tempfile.NamedTemporaryFile(delete=False, mode='w', suffix='.json') as temp_file:
+    temp_file.write(google_credentials_json)
+    temp_cred_file_path = temp_file.name
+
+
+# Set the environment variable to the path of the temporary file
+os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = temp_cred_file_path
+
+# Initialize Firebase Admin SDK with the temporary credentials file
+credentials = credentials.Certificate(temp_cred_file_path)
 initialize_app(credentials)
 db = firestore.client()
 
@@ -120,9 +132,6 @@ app.jinja_env.globals.update(generate_session_id=generate_session_id)
 
 # Initialize FuturesSession
 futures_session = FuturesSession(executor=ThreadPoolExecutor(max_workers=10))
-
-# Set the environment variable for Google Cloud credentials
-os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = google_credentials_json
 
 # Grouping openings by ECO and name
 eco_details = {
