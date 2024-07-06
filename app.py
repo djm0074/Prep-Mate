@@ -1140,7 +1140,7 @@ def update_stats(d, game, username, time_classes):
                 game_id = game['url'].split('/')[-1]
                 win_i = 0
 
-                if game['white']['username'] == username:
+                if game['white']['username'].lower() == username.lower():
                     if game['white']['result'] == 'win':
                         win_i = 1
                     elif game['black']['result'] != 'win':
