@@ -9,6 +9,7 @@
                         <button type="submit" class="btn btn-sm"
                                 style="background-color: {{ playerinfo.not_color }}; color: {{ playerinfo.color }}">view
                             {{ playerinfo.not_color }} <i class="fas fa-arrow-right custom-arrow"></i></button>
+                        <input type="hidden" name="session_id" id="swap_session_id" value="{{ session_id }}">
                     </form>
                 </div>
                 <span class="rating-text text-nowrap text-capitalize">
@@ -46,12 +47,13 @@
                                 <button type="submit" class="btn btn-primary">Sort</button>
                             </div>
                         </div>
-                        <input type="hidden" name="stats" id="statsInput" value="{{ stats | tojson }}">
+                        <input type="hidden" name="session_id" id="sort_session_id" value="{{ session_id }}">
                     </form>
                 </div>
             </div>
         </div>
         {% for opening in stats %}
+        {% set opening_i = loop.index0 %}
         <div class="col-12" style="padding-left: 0px; padding-right: 0px;">
             <div class="custom-card" style="margin-bottom: 0px; padding-bottom: 0px;">
                 <div class="card-body" style="padding-bottom: 10px; padding-top: 10px;">
@@ -69,8 +71,9 @@
                 </div>
                 <div class="card-body" style="padding-bottom: 0px; padding-top: 0px;">
                     {% for line in opening.sub_lines %}
+                    {% set line_i = loop.index0 %}
                         {% if line.variations %}
-                    <a href="{{ url_for('opening_details', session_id=generate_session_id(line), parent=opening.display_name) }}"
+                    <a href="{{ url_for('opening_details', current_session_id=session_id, path='.'.join([playerinfo.color, str(opening_i), 'sub_lines', str(line_i)]) , parent=opening.display_name) }}"
                        target="_blank" class="card-link">
                         {% endif %}
                         <div class="row line-row">
@@ -88,8 +91,9 @@
                         {% endif %}
                     {% if line.sub_lines %}
                     {% for subline in line.sub_lines %}
+                    {% set subline_i = loop.index0 %}
                         {% if subline.variations %}
-                    <a href="{{ url_for('opening_details', session_id=generate_session_id(subline), parent=opening.display_name ~ ' / ' ~ line.display_name) }}"
+                    <a href="{{ url_for('opening_details', current_session_id=session_id, path='.'.join([playerinfo.color, str(opening_i), 'sub_lines', str(line_i), 'sub_lines', str(subline_i)]) , parent=opening.display_name ~ ' / ' ~ line.display_name) }}"
                        target="_blank" class="card-link">
                         {% endif %}
                         <div class="row subline-row">
@@ -108,8 +112,9 @@
                         {% endif %}
                     {% if subline.sub_lines %}
                     {% for subsubline in subline.sub_lines %}
+                    {% set subsubline_i = loop.index0 %}
                         {% if subsubline.variations %}
-                    <a href="{{ url_for('opening_details', session_id=generate_session_id(subsubline), parent=opening.display_name ~ ' / ' ~ line.display_name ~ ' / ' ~ subline.display_name) }}"
+                    <a href="{{ url_for('opening_details', current_session_id=session_id, path='.'.join([playerinfo.color, str(opening_i), 'sub_lines', str(line_i), 'sub_lines', str(subline_i), 'sub_lines', str(subsubline_i)]) , parent=opening.display_name ~ ' / ' ~ line.display_name ~ ' / ' ~ subline.display_name) }}"
                        target="_blank" class="card-link">
                         {% endif %}
                         <div class="row subsubline-row">

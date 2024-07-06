@@ -1,15 +1,18 @@
-from flask import Flask, request, render_template, session
-from flask_session import Session
+import firebase_admin
+from firebase_admin import credentials, firestore, initialize_app
+from flask import Flask, request, render_template
 from requests_futures.sessions import FuturesSession
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dotenv import load_dotenv
-from redis import Redis
+from google.cloud import storage
+import json
 import os
 import uuid
 import requests
 import copy
-import pprint
-from datetime import timedelta, datetime
+from datetime import datetime, timedelta, timezone
+import threading
+import time
 
 app = Flask(__name__)
 
@@ -22,26 +25,104 @@ if not secret_key and app.config['ENV'] == 'production':
     raise ValueError("No FLASK_SECRET_KEY set for Flask application")
 app.secret_key = secret_key or 'default_secret_key'  # Use default for development
 
-# Configure server-side session with Redis
-app.config['SESSION_TYPE'] = 'redis'
-app.config['SESSION_REDIS'] = Redis.from_url(os.environ.get('REDIS_URL'))
-app.config['SESSION_PERMANENT'] = False
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=120)
-
-Session(app)
-
-# Initialize FuturesSession
-futures_session = FuturesSession(executor=ThreadPoolExecutor(max_workers=10))
+# Initialize Firebase Admin SDK
+google_credentials_json = os.environ.get('GOOGLE_CREDENTIALS_JSON')
+if not google_credentials_json:
+    raise ValueError("No GOOGLE_CREDENTIALS_JSON set for Flask application")
+credentials = credentials.Certificate(json.loads(google_credentials_json))
+initialize_app(credentials)
+db = firestore.client()
 
 
 def generate_session_id(data):
     session_id = str(uuid.uuid4())
-    session[session_id] = data
+
+    # Split large data
+    stats = data['stats']
+    del data['stats']
+
+    # Upload large data to GCS
+    bucket_name = 'prep-mate-stats-bucket'
+    filename = f'{session_id}_stats.json'
+    data_url = upload_to_gcs(bucket_name, json.dumps(stats), filename)
+
+    # Save reference to Firestore
+    data['stats_url'] = data_url
+    data['last_activity'] = datetime.now(timezone.utc).isoformat()
+
+    db.collection('sessions').document(session_id).set(data)
     return session_id
 
 
+def get_session_data(session_id):
+    doc = db.collection('sessions').document(session_id).get()
+    data = doc.to_dict() if doc.exists else None
+
+    if data and 'stats_url' in data:
+        response = requests.get(data['stats_url'])
+        data['stats'] = response.json()
+
+        # Update last activity timestamp
+        db.collection('sessions').document(session_id).update({
+            'last_activity': datetime.now(timezone.utc).isoformat()
+        })
+
+    return data
+
+
+def upload_to_gcs(bucket_name, data, filename):
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(filename)
+    blob.upload_from_string(data)
+    return blob.public_url
+
+
+# Cleanup Inactive Sessions Periodically
+def cleanup_inactive_sessions(max_inactive_duration):
+    while True:
+        now = datetime.now(timezone.utc)
+        cutoff_time = now - timedelta(seconds=max_inactive_duration)
+
+        sessions_ref = db.collection('sessions')
+        inactive_sessions = sessions_ref.where('last_activity', '<', cutoff_time.isoformat()).stream()
+
+        for session in inactive_sessions:
+            session_id = session.id
+            session_data = session.to_dict()
+
+            # Delete the session document
+            sessions_ref.document(session_id).delete()
+
+            # Delete the corresponding stats file from GCS
+            if 'stats_url' in session_data:
+                filename = session_data['stats_url'].split('/')[-1]
+                delete_from_gcs('prep-mate-stats-bucket', filename)
+
+        time.sleep(max_inactive_duration)  # Wait for the specified duration before checking again
+
+
+def delete_from_gcs(bucket_name, filename):
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(filename)
+    blob.delete()
+
+
+# Start the cleanup thread
+max_inactive_duration = 3600  # 1 hour (you can change this value)
+cleanup_thread = threading.Thread(target=cleanup_inactive_sessions, args=(max_inactive_duration,))
+cleanup_thread.daemon = True
+cleanup_thread.start()
+
 # Register the function as a template global
 app.jinja_env.globals.update(generate_session_id=generate_session_id)
+
+# Initialize FuturesSession
+futures_session = FuturesSession(executor=ThreadPoolExecutor(max_workers=10))
+
+# Set the environment variable for Google Cloud credentials
+os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = google_credentials_json
 
 # Grouping openings by ECO and name
 eco_details = {
@@ -1128,7 +1209,6 @@ def process_games_api():
 
     player_info = {'display_name': profile_info['url'][29:], 'color': color, 'not_color': not_color,
                    'ratings': rating_info, 'time_frame': time_frame_str}
-    session['player-info'] = player_info
 
     # Initialize the opening stats dictionary
     opening_stats_w = {eco: create_eco_dict(details['displayName'], details['lines']) for eco, details in
@@ -1141,13 +1221,20 @@ def process_games_api():
     # Process games and update stats
     process_games(opening_stats, username, num_months, time_classes)
 
-    # Prettify stats and store them in session
-    session['stats'] = prettify_stats(opening_stats[color])
-    session['alt-stats'] = prettify_stats(opening_stats[not_color])
+    # Prettify stats and store them in Firestore
+    stats = {
+        'white': prettify_stats(opening_stats['white']),
+        'black': prettify_stats(opening_stats['black'])
+    }
 
-    if session['stats']:
-        return render_template('process_games.html', stats=session['stats'], playerinfo=session['player-info'],
-                               gamesort='checked', winsort='', asc='', desc='checked')
+    session_id = generate_session_id({
+        'player_info': player_info,
+        'stats': stats
+    })
+
+    if stats:
+        return render_template('process_games.html', stats=stats[color], playerinfo=player_info, gamesort='checked',
+                               winsort='', asc='', desc='checked', session_id=session_id, str=str)
     else:
         return "No stats available", 400
 
@@ -1160,49 +1247,67 @@ def sort_openings_api():
                 line['sub_lines'].sort(key=lambda x: x[metric], reverse=direction)
                 recursive_sort(line['sub_lines'])
 
-    if 'stats' not in session:
+    session_id = request.form['session_id']
+    data = get_session_data(session_id)
+
+    if not data:
         return "No stats to sort", 400
 
     metric = request.form['metric']
     direction = request.form['direction'] == 'True'
-    stats = session['stats']
+    color = data['player_info']['color']
+    stats = data['stats'][color]
     stats.sort(key=lambda x: x[metric], reverse=direction)
+
     recursive_sort(stats)
-    session['stats'] = stats
 
     gamesort = 'checked' if metric == 'num_games' else ''
     winsort = 'checked' if metric == 'win_rate' else ''
     asc = 'checked' if not direction else ''
     desc = 'checked' if direction else ''
 
-    return render_template('process_games.html', stats=session['stats'], playerinfo=session['player-info'],
-                           gamesort=gamesort, winsort=winsort, asc=asc, desc=desc)
+    return render_template('process_games.html', stats=stats, playerinfo=data['player_info'], gamesort=gamesort,
+                           winsort=winsort, asc=asc, desc=desc, session_id=session_id, str=str)
 
 
 @app.route('/swap_colors', methods=['POST'])
 def swap_colors_api():
-    if 'stats' not in session or 'alt-stats' not in session:
+    session_id = request.form['session_id']
+    data = get_session_data(session_id)
+
+    if not data:
         return "No stats to swap", 400
 
-    temp_stats = session.get('stats')
-    session['stats'] = session.get('alt-stats')
-    session['alt-stats'] = temp_stats
+    old_color = data['player_info']['color']
+    new_color = data['player_info']['not_color']
 
-    temp_color = session['player-info']['color']
-    session['player-info']['color'] = session['player-info']['not_color']
-    session['player-info']['not_color'] = temp_color
+    data['player_info']['color'] = new_color
+    data['player_info']['not_color'] = old_color
 
-    return render_template('process_games.html', stats=session['stats'], playerinfo=session['player-info'],
-                           gamesort='checked', winsort='', asc='', desc='checked')
+    db.collection('sessions').document(session_id).update({
+        'player_info.color': new_color,
+        'player_info.not_color': old_color
+    })
+
+    return render_template('process_games.html', stats=data['stats'][new_color], playerinfo=data['player_info'],
+                           gamesort='checked', winsort='', asc='', desc='checked', session_id=session_id, str=str)
 
 
 @app.route('/opening_details')
 def opening_details():
-    session_id = request.args.get('session_id', None)
-    if session_id and session_id in session:
-        variation = session[session_id]
-    else:
+    current_session_id = request.args.get('current_session_id', None)
+    session_info = get_session_data(current_session_id)
+
+    if not session_info or 'stats' not in session_info:
         return "Session expired or invalid", 400
+
+    variation = session_info['stats']
+    path = request.args.get('path', None)
+    keys = path.split('.')
+    for key in keys:
+        if key.isdigit():
+            key = int(key)  # Convert to integer if the key is an index
+        variation = variation[key]
 
     parent = request.args.get('parent', '')
 
@@ -1211,9 +1316,7 @@ def opening_details():
             sorted(line['games'].items(), key=lambda item: datetime.strptime(item[1]['date'], '%Y.%m.%d'),
                    reverse=True))
 
-    pprint.pp(variation)
-
-    return render_template('opening_details.html', variation=variation, parent=parent, playerinfo=session['player-info'])
+    return render_template('opening_details.html', variation=variation, parent=parent, playerinfo=session_info['player_info'])
 
 
 def prettify_stats(stats_dict):
