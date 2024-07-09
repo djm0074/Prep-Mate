@@ -1243,6 +1243,12 @@ def process_games_api():
         'stats': stats
     })
 
+    metric = 'num_games'
+    direction = 'True'
+
+    stats[color].sort(key=lambda x: x[metric], reverse=direction)
+    recursive_sort(stats[color], metric, direction)
+
     if stats:
         return render_template('process_games.html', stats=stats[color], playerinfo=player_info, gamesort='checked',
                                winsort='', asc='', desc='checked', session_id=session_id, str=str)
@@ -1252,11 +1258,6 @@ def process_games_api():
 
 @app.route('/sort_openings', methods=['POST'])
 def sort_openings_api():
-    def recursive_sort(lines):
-        for line in lines:
-            if 'sub_lines' in line and line['sub_lines']:
-                line['sub_lines'].sort(key=lambda x: x[metric], reverse=direction)
-                recursive_sort(line['sub_lines'])
 
     session_id = request.form['session_id']
     data = get_session_data(session_id)
@@ -1270,7 +1271,7 @@ def sort_openings_api():
     stats = data['stats'][color]
     stats.sort(key=lambda x: x[metric], reverse=direction)
 
-    recursive_sort(stats)
+    recursive_sort(stats, metric, direction)
 
     gamesort = 'checked' if metric == 'num_games' else ''
     winsort = 'checked' if metric == 'win_rate' else ''
@@ -1279,6 +1280,13 @@ def sort_openings_api():
 
     return render_template('process_games.html', stats=stats, playerinfo=data['player_info'], gamesort=gamesort,
                            winsort=winsort, asc=asc, desc=desc, session_id=session_id, str=str)
+
+
+def recursive_sort(lines, metric, direction):
+    for line in lines:
+        if 'sub_lines' in line and line['sub_lines']:
+            line['sub_lines'].sort(key=lambda x: x[metric], reverse=direction)
+            recursive_sort(line['sub_lines'], metric, direction)
 
 
 @app.route('/swap_colors', methods=['POST'])
