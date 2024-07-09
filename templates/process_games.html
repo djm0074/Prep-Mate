@@ -1,13 +1,14 @@
 {# templates/process_games.html #}
 {% if stats and playerinfo %}
+{% set current_color = playerinfo.color %}
 <div class="container d-flex justify-content-center align-items-center">
     <div class="row pb-5" style="max-width: 1500px;">
         <div class="d-flex flex-wrap px-3 pb-3 shadow-lg" style="background-color: #263238;">
             <div class="col-lg-8 d-flex flex-column px-1 pt-1">
-                <div class="user-text text-nowrap">{{ playerinfo.display_name }} as <span class="text-capitalize">{{ playerinfo.color }} </span>
+                <div class="user-text text-nowrap">{{ playerinfo.display_name }} as <span class="text-capitalize">{{ current_color }} </span>
                     <form action="/swap_colors" method="post" style="display:inline;">
                         <button type="submit" class="btn btn-sm"
-                                style="background-color: {{ playerinfo.not_color }}; color: {{ playerinfo.color }}">view
+                                style="background-color: {{ playerinfo.not_color }}; color: {{ current_color }}">view
                             {{ playerinfo.not_color }} <i class="fas fa-arrow-right custom-arrow"></i></button>
                         <input type="hidden" name="session_id" id="swap_session_id" value="{{ session_id }}">
                     </form>
@@ -23,7 +24,7 @@
                 </span>
             </div>
             <div class="col-12 col-lg-4 d-flex flex-lg-column align-items-lg-end justify-content-lg-end">
-                <div class="h-100 pt-2 user-subtext">*{{ playerinfo.time_frame }}</div>
+                <div class="h-100 pt-2 user-subtext text-nowrap">*{{ playerinfo.time_frame }} | {{ playerinfo.total_games[current_color] }} games</div>
                 <div class="col-9 d-flex flex-fill justify-content-end">
                     <form action="/sort_openings" method="post">
                         <div class="btn-toolbar d-flex justify-content-end" role="group" aria-label="Group with button elements">
@@ -53,7 +54,6 @@
             </div>
         </div>
         {% for opening in stats %}
-        {% set opening_i = loop.index0 %}
         <div class="col-12" style="padding-left: 0px; padding-right: 0px;">
             <div class="custom-card" style="margin-bottom: 0px; padding-bottom: 0px;">
                 <div class="card-body" style="padding-bottom: 10px; padding-top: 10px;">
@@ -71,9 +71,8 @@
                 </div>
                 <div class="card-body" style="padding-bottom: 0px; padding-top: 0px;">
                     {% for line in opening.sub_lines %}
-                    {% set line_i = loop.index0 %}
                         {% if line.variations %}
-                    <a href="{{ url_for('opening_details', current_session_id=session_id, path='.'.join([playerinfo.color, str(opening_i), 'sub_lines', str(line_i)]) , parent=opening.display_name) }}"
+                    <a href="{{ url_for('opening_details', current_session_id=session_id, path='.'.join([playerinfo.color, str(opening.id), 'sub_lines', str(line.id)]) , parent=opening.display_name) }}"
                        target="_blank" class="card-link">
                         {% endif %}
                         <div class="row line-row">
@@ -91,9 +90,8 @@
                         {% endif %}
                     {% if line.sub_lines %}
                     {% for subline in line.sub_lines %}
-                    {% set subline_i = loop.index0 %}
                         {% if subline.variations %}
-                    <a href="{{ url_for('opening_details', current_session_id=session_id, path='.'.join([playerinfo.color, str(opening_i), 'sub_lines', str(line_i), 'sub_lines', str(subline_i)]) , parent=opening.display_name ~ ' / ' ~ line.display_name) }}"
+                    <a href="{{ url_for('opening_details', current_session_id=session_id, path='.'.join([playerinfo.color, str(opening.id), 'sub_lines', str(line.id), 'sub_lines', str(subline.id)]) , parent=opening.display_name ~ ' / ' ~ line.display_name) }}"
                        target="_blank" class="card-link">
                         {% endif %}
                         <div class="row subline-row">
@@ -112,9 +110,8 @@
                         {% endif %}
                     {% if subline.sub_lines %}
                     {% for subsubline in subline.sub_lines %}
-                    {% set subsubline_i = loop.index0 %}
                         {% if subsubline.variations %}
-                    <a href="{{ url_for('opening_details', current_session_id=session_id, path='.'.join([playerinfo.color, str(opening_i), 'sub_lines', str(line_i), 'sub_lines', str(subline_i), 'sub_lines', str(subsubline_i)]) , parent=opening.display_name ~ ' / ' ~ line.display_name ~ ' / ' ~ subline.display_name) }}"
+                    <a href="{{ url_for('opening_details', current_session_id=session_id, path='.'.join([playerinfo.color, str(opening.id), 'sub_lines', str(line.id), 'sub_lines', str(subline.id), 'sub_lines', str(subsubline.id)]) , parent=opening.display_name ~ ' / ' ~ line.display_name ~ ' / ' ~ subline.display_name) }}"
                        target="_blank" class="card-link">
                         {% endif %}
                         <div class="row subsubline-row">

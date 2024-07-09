@@ -36,7 +36,6 @@ with tempfile.NamedTemporaryFile(delete=False, mode='w', suffix='.json') as temp
     temp_file.write(google_credentials_json)
     temp_cred_file_path = temp_file.name
 
-
 # Set the environment variable to the path of the temporary file
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = temp_cred_file_path
 
@@ -1216,9 +1215,6 @@ def process_games_api():
             'peak': best_rating if best_rating != 'N/A' else 'N/A'
         }
 
-    player_info = {'display_name': profile_info['url'][29:], 'color': color, 'not_color': not_color,
-                   'ratings': rating_info, 'time_frame': time_frame_str}
-
     # Initialize the opening stats dictionary
     opening_stats_w = {eco: create_eco_dict(details['displayName'], details['lines']) for eco, details in
                        eco_details.items()}
@@ -1231,10 +1227,16 @@ def process_games_api():
     process_games(opening_stats, username, num_months, time_classes)
 
     # Prettify stats and store them in Firestore
+    stats_w, tot_games_w = prettify_stats(opening_stats['white'])
+    stats_b, tot_games_b = prettify_stats(opening_stats['black'])
     stats = {
-        'white': prettify_stats(opening_stats['white']),
-        'black': prettify_stats(opening_stats['black'])
+        'white': stats_w,
+        'black': stats_b
     }
+
+    player_info = {'display_name': profile_info['url'][29:], 'color': color, 'not_color': not_color,
+                   'ratings': rating_info, 'time_frame': time_frame_str,
+                   'total_games': {'white': tot_games_w, 'black': tot_games_b}}
 
     session_id = generate_session_id({
         'player_info': player_info,
@@ -1313,10 +1315,28 @@ def opening_details():
     variation = session_info['stats']
     path = request.args.get('path', None)
     keys = path.split('.')
+
+    print("Initial variation type:", type(variation))
+
     for key in keys:
+        if not key:  # Skip empty keys
+            continue
+
+        print("Current key:", key)
+        print("Current variation type:", type(variation))
+
         if key.isdigit():
             key = int(key)  # Convert to integer if the key is an index
-        variation = variation[key]
+
+        if isinstance(variation, list):
+            if isinstance(key, int):
+                variation = variation[key]
+            else:
+                return f"Invalid path for list at key: {key}", 400
+        elif isinstance(variation, dict):
+            variation = variation[key]
+        else:
+            return f"Invalid path at key: {key}", 400
 
     parent = request.args.get('parent', '')
 
@@ -1325,11 +1345,12 @@ def opening_details():
             sorted(line['games'].items(), key=lambda item: datetime.strptime(item[1]['date'], '%Y.%m.%d'),
                    reverse=True))
 
-    return render_template('opening_details.html', variation=variation, parent=parent, playerinfo=session_info['player_info'])
+    return render_template('opening_details.html', variation=variation, parent=parent,
+                           playerinfo=session_info['player_info'])
 
 
 def prettify_stats(stats_dict):
-    def recursive_build(details):
+    def recursive_build(details, current_id=0):
         num_games = details['numGames']
         num_wins = details['numWins']
         win_rate = int(round((num_wins / num_games * 100), 0)) if num_games > 0 else 0  # Calculate and round win rate
@@ -1346,6 +1367,7 @@ def prettify_stats(stats_dict):
         }
 
         result = {
+            'id': current_id,  # Use current_id as the unique identifier
             'display_name': details['displayName'],
             'num_games': num_games,
             'win_rate': win_rate,  # Store win rate as an integer
@@ -1354,11 +1376,11 @@ def prettify_stats(stats_dict):
         }
 
         if 'lines' in details:
+            newer_idx = 0
             for key, sub_details in details['lines'].items():
                 if sub_details and sub_details['numGames'] > 0:  # Ensuring there is data to process
-                    result['sub_lines'].append(recursive_build(sub_details))
-
-        result['sub_lines'].sort(key=lambda x: x['num_games'], reverse=True)
+                    result['sub_lines'].append(recursive_build(sub_details, newer_idx))
+                    newer_idx += 1
 
         return result
 
@@ -1382,14 +1404,16 @@ def prettify_stats(stats_dict):
 
     results = []
     seen = set()
+    new_idx = 0
+    total_games = 0
     for eco_code, details in stats_dict.items():
         if details['displayName'] not in seen and details['numGames'] > 0:
-            results.append(recursive_build(details))
+            results.append(recursive_build(details, new_idx))
+            new_idx += 1
+            total_games += details['numGames']
             seen.add(details['displayName'])
 
-    results.sort(key=lambda x: x['num_games'], reverse=True)
-
-    return results
+    return results, total_games
 
 
 if __name__ == '__main__':
